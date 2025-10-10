@@ -1,36 +1,240 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Adventure Rentals - Motorcycle, UTV & Guided Tour Platform 🏍️
 
-## Getting Started
+A complete, production-ready rental management platform built with Next.js 15, TypeScript, Tailwind CSS v4, and Supabase. Features a comprehensive admin panel for managing vehicles, rentals, and customers.
 
-First, run the development server:
+## ✨ Key Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Customer-Facing
+- **Vehicle Browsing**: Filter and search motorcycles, UTVs, and guided tours
+- **Easy Booking**: Simple rental booking flow with date selection
+- **User Dashboard**: View and manage rental history
+- **Responsive Design**: Perfect experience on desktop, tablet, and mobile
+
+### Admin Panel
+- **📊 Dashboard**: Real-time stats, revenue tracking, and quick actions
+- **🏍️ Vehicle Management**: Full CRUD for motorcycles, UTVs, and tours
+- **📋 Rental Management**: Approve/reject bookings, manage rental lifecycle
+- **👥 Customer Management**: View users, manage roles, track customer activity
+- **🔒 Role-Based Access**: Secure admin routes with middleware protection
+- **📝 Admin Notes**: Add internal notes to rentals for team coordination
+
+## 🎨 Design System
+
+Custom color palette designed for trust and adventure:
+- **Orange (#E76F51)**: Primary actions and highlights
+- **Pine Green (#264653)**: Headers, navigation, trust elements
+- **Sand Beige (#F4A261)**: Warm accents and backgrounds
+- **Rock Gray (#6D6875)**: Body text and secondary elements
+- **Sky White (#FAFAFA)**: Clean backgrounds
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 15.5.4 (App Router, React Server Components)
+- **Language**: TypeScript 5
+- **Styling**: Tailwind CSS v4.1.14 (with CSS @theme configuration)
+- **Database**: Supabase (PostgreSQL with Row-Level Security)
+- **Authentication**: Supabase Auth with role-based access control
+- **State Management**: React Hooks + Server Components
+- **Deployment**: Vercel-optimized
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ and Yarn
+- Supabase account
+- Git
+
+### Installation
+
+1. **Clone and install**
+   ```bash
+   git clone <repository-url>
+   cd bike_rental
+   yarn install
+   ```
+
+2. **Set up Supabase**
+   - Create a project at [supabase.com](https://supabase.com)
+   - Go to SQL Editor and run `supabase/schema.sql`
+   - Note your Project URL and anon key from Settings → API
+
+3. **Configure environment**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Edit `.env.local`:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+4. **Run development server**
+   ```bash
+   yarn dev
+   ```
+
+   Visit [http://localhost:3001](http://localhost:3001)
+
+5. **Create admin account**
+   - Sign up at `/auth/signup`
+   - In Supabase: Table Editor → `profiles` → find your user
+   - Change `role` from `user` to `admin`
+   - Sign in again to access `/admin`
+
+📖 **Full setup guide**: See [ADMIN_SETUP.md](./ADMIN_SETUP.md)
+
+## � Project Structure
+
+```
+bike_rental/
+├── src/
+│   ├── app/
+│   │   ├── admin/              # Admin panel (protected routes)
+│   │   │   ├── customers/      # Customer management
+│   │   │   ├── rentals/        # Rental approval & management
+│   │   │   ├── vehicles/       # Vehicle CRUD
+│   │   │   └── page.tsx        # Dashboard with stats
+│   │   ├── auth/               # Signin/signup pages
+│   │   ├── my-rentals/         # User rental dashboard
+│   │   ├── rentals/            # Public vehicle listings
+│   │   └── layout.tsx          # Root layout with Header/Footer
+│   ├── components/
+│   │   ├── Header.tsx          # Navigation with auth state
+│   │   ├── Footer.tsx          # Site footer
+│   │   ├── VehicleForm.tsx     # Reusable vehicle create/edit
+│   │   └── ToastProvider.tsx   # Global notifications
+│   ├── lib/
+│   │   └── supabase.ts         # Supabase client setup
+│   └── middleware.ts           # Route protection & auth
+├── supabase/
+│   └── schema.sql              # Complete database schema
+├── ADMIN_SETUP.md              # Admin account creation guide
+├── DEPLOYMENT.md               # Vercel deployment guide
+└── README.md                   # This file
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔐 Security Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Row-Level Security (RLS)**: Database policies enforce access control
+- **Middleware Protection**: Admin routes protected at Next.js level
+- **Role-Based Access**: User/Admin roles with granular permissions
+- **Secure Authentication**: Supabase Auth with email verification
+- **Environment Variables**: Sensitive data never committed to git
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🎯 Core Pages
 
-## Learn More
+### Public Routes
+- `/` - Homepage with hero and vehicle types
+- `/rentals` - Browse all available vehicles
+- `/rentals/[id]` - Vehicle details and booking
+- `/auth/signin` - User login
+- `/auth/signup` - User registration
 
-To learn more about Next.js, take a look at the following resources:
+### Authenticated Routes
+- `/my-rentals` - User's rental history and status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Admin Routes (Protected)
+- `/admin` - Dashboard with stats and quick actions
+- `/admin/vehicles` - Vehicle management
+- `/admin/rentals` - Rental approval workflow
+- `/admin/customers` - Customer and role management
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## � Database Schema
 
-## Deploy on Vercel
+Tables created by `schema.sql`:
+- **profiles**: User info with roles (user/admin)
+- **vehicles**: Motorcycles, UTVs, guided tours
+- **rentals**: Booking records with status workflow
+- **gps_tracking**: Real-time location data (prepared for future)
+- **activity_logs**: Audit trail (prepared for future)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🚀 Deployment to Vercel
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Quick Deploy:**
+1. Push to GitHub
+2. Import to Vercel
+3. Add environment variables
+4. Deploy!
+
+**Detailed guide**: See [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Production Checklist
+- ✅ Environment variables configured
+- ✅ Database schema deployed
+- ✅ Admin account created
+- ✅ Sample vehicles added
+- ✅ SSL enabled (automatic on Vercel)
+- ✅ SEO metadata configured
+- ✅ Error boundaries in place
+- ✅ Loading states implemented
+
+## 🎬 MVP Demo Script
+
+Perfect for partner presentations:
+
+1. **Homepage** - Show hero and vehicle types
+2. **Browse Rentals** - Filter vehicles, view details
+3. **User Flow** - Sign up, book a rental
+4. **Admin Dashboard** - Show stats and management tools
+5. **Vehicle Management** - Create/edit vehicles
+6. **Rental Workflow** - Approve bookings, manage lifecycle
+7. **Customer Management** - View users, manage roles
+
+## 🔧 Development Commands
+
+```bash
+# Development server
+yarn dev
+
+# Production build (test before deploy)
+yarn build
+
+# Start production server locally
+yarn start
+
+# Type checking
+yarn type-check
+
+# Linting
+yarn lint
+```
+
+## 📝 Environment Variables
+
+Required for production:
+```env
+NEXT_PUBLIC_SUPABASE_URL=        # Supabase project URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=   # Supabase anon key
+```
+
+Optional:
+```env
+NEXT_PUBLIC_SITE_URL=            # Your domain (for SEO)
+```
+
+## 🤝 Contributing
+
+This is an MVP. Future enhancements:
+- [ ] GPS tracking with live maps
+- [ ] Activity logs viewer
+- [ ] Image uploads for vehicles
+- [ ] Payment integration
+- [ ] Email notifications
+- [ ] Advanced analytics
+
+## 📄 License
+
+Private project for business use.
+
+## 🆘 Support
+
+- **Setup Issues**: See [ADMIN_SETUP.md](./ADMIN_SETUP.md)
+- **Deployment**: See [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Database**: Check Supabase docs and `schema.sql` comments
+
+---
+
+**Built with ❤️ for Adventure Rentals**
+
+Ready for production deployment and partner presentations! 🚀
