@@ -1,73 +1,114 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/lib/supabase';
 import { getVehiclePlaceholderImage } from '@/lib/vehicle-utils';
 
 interface VehicleFormProps {
   vehicleId?: string;
 }
 
+type VehicleType = 'motorcycle' | 'utv' | 'guided_tour';
+
+type VehicleRow = Database['public']['Tables']['vehicles']['Row'];
+type VehicleInsert = Database['public']['Tables']['vehicles']['Insert'];
+
+interface VehicleFormState {
+  type: VehicleType;
+  name: string;
+  description: string;
+  price_per_day: string;
+  available: boolean;
+  specifications: Record<string, string>;
+  images: string[];
+}
+
 export default function VehicleForm({ vehicleId }: VehicleFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    type: 'motorcycle' as 'motorcycle' | 'utv' | 'guided_tour',
+  const [formData, setFormData] = useState<VehicleFormState>({
+    type: 'motorcycle',
     name: '',
     description: '',
     price_per_day: '',
     available: true,
-    specifications: {} as Record<string, string>,
-    images: [] as string[],
+    specifications: {},
+    images: [],
   });
 
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  useEffect(() => {
-    if (vehicleId) {
-      fetchVehicle();
-    }
-  }, [vehicleId]);
+  const fetchVehicle = useCallback(async () => {
+    if (!vehicleId) return;
 
-  async function fetchVehicle() {
     const { data, error } = await supabase
       .from('vehicles')
       .select('*')
       .eq('id', vehicleId)
-      .single();
+      .single<VehicleRow>();
 
     if (error) {
       console.error('Error fetching vehicle:', error);
       alert('Failed to load vehicle');
       router.push('/admin/vehicles');
     } else if (data) {
+      const vehicle = data;
+
+      const specs = vehicle.specifications
+        ? Object.entries(vehicle.specifications as Record<string, unknown>).reduce<Record<string, string>>(
+              (acc, [key, value]) => {
+                acc[String(key)] = String(value ?? '');
+                return acc;
+              },
+              {}
+            )
+        : {};
+
+      const images = Array.isArray(vehicle.images) ? vehicle.images : [];
+
+      const vehicleType: VehicleType =
+        vehicle.type === 'motorcycle' || vehicle.type === 'utv' || vehicle.type === 'guided_tour'
+          ? vehicle.type
+          : 'motorcycle';
+
       setFormData({
-        type: data.type,
-        name: data.name,
-        description: data.description || '',
-        price_per_day: data.price_per_day.toString(),
-        available: data.available,
-        specifications: data.specifications || {},
-        images: Array.isArray(data.images) ? data.images : [],
+        type: vehicleType,
+        name: vehicle.name,
+        description: vehicle.description || '',
+        price_per_day: Number(vehicle.price_per_day ?? 0).toString(),
+        available: vehicle.available,
+        specifications: specs,
+        images,
       });
     }
-  }
+  }, [router, vehicleId]);
+
+  useEffect(() => {
+    if (vehicleId) {
+      void fetchVehicle();
+    }
+  }, [fetchVehicle, vehicleId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    const vehicleData = {
+    const pricePerDay = Number.parseFloat(formData.price_per_day);
+    const specifications = Object.keys(formData.specifications).length > 0 ? formData.specifications : null;
+
+    const vehicleData: VehicleInsert = {
       type: formData.type,
       name: formData.name,
       description: formData.description,
-      price_per_day: parseFloat(formData.price_per_day),
+      price_per_day: Number.isFinite(pricePerDay) ? pricePerDay : 0,
       available: formData.available,
-      specifications: formData.specifications,
+      specifications,
       images:
         formData.images.length > 0
           ? formData.images
@@ -77,17 +118,17 @@ export default function VehicleForm({ vehicleId }: VehicleFormProps) {
     let error;
     if (vehicleId) {
       // Update existing vehicle
-      const result = await supabase
+      const { error: updateError } = await supabase
         .from('vehicles')
-        .update(vehicleData)
+        .update(vehicleData as never)
         .eq('id', vehicleId);
-      error = result.error;
+      error = updateError;
     } else {
       // Create new vehicle
-      const result = await supabase
+      const { error: insertError } = await supabase
         .from('vehicles')
-        .insert([vehicleData]);
-      error = result.error;
+        .insert([vehicleData] as never);
+      error = insertError;
     }
 
     setLoading(false);
@@ -173,7 +214,7 @@ export default function VehicleForm({ vehicleId }: VehicleFormProps) {
               </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as VehicleType })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 required
               >
@@ -336,7 +377,13 @@ export default function VehicleForm({ vehicleId }: VehicleFormProps) {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {formData.images.map((url) => (
                 <div key={url} className="relative group rounded-xl overflow-hidden border border-sand-200">
-                  <img src={url} alt={formData.name || 'Vehicle image'} className="h-40 w-full object-cover" />
+                  <Image
+                    src={url}
+                    alt={formData.name || 'Vehicle image'}
+                    width={320}
+                    height={160}
+                    className="h-40 w-full object-cover"
+                  />
                   <button
                     type="button"
                     onClick={() => removeImage(url)}

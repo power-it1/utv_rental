@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Rental {
@@ -27,15 +26,20 @@ interface Rental {
 export default function RentalsManagementPage() {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | Rental['status']>('all');
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
 
-  useEffect(() => {
-    fetchRentals();
-  }, [statusFilter]);
+  const statusOptions: ReadonlyArray<'all' | Rental['status']> = [
+    'all',
+    'pending',
+    'confirmed',
+    'active',
+    'completed',
+    'cancelled',
+  ];
 
-  async function fetchRentals() {
+  const fetchRentals = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('rentals')
@@ -55,29 +59,33 @@ export default function RentalsManagementPage() {
     if (error) {
       console.error('Error fetching rentals:', error);
     } else {
-      setRentals(data || []);
+      setRentals((data ?? []) as Rental[]);
     }
     setLoading(false);
-  }
+  }, [statusFilter]);
 
-  async function updateRentalStatus(id: string, status: string) {
+  useEffect(() => {
+    void fetchRentals();
+  }, [fetchRentals]);
+
+  async function updateRentalStatus(id: string, status: Rental['status']) {
     const { error } = await supabase
       .from('rentals')
-      .update({ status })
+      .update({ status } as never)
       .eq('id', id);
 
     if (error) {
       console.error('Error updating rental:', error);
       alert('Failed to update rental status');
     } else {
-      fetchRentals();
+      await fetchRentals();
     }
   }
 
   async function saveAdminNotes(id: string) {
     const { error } = await supabase
       .from('rentals')
-      .update({ admin_notes: adminNotes })
+      .update({ admin_notes: adminNotes } as never)
       .eq('id', id);
 
     if (error) {
@@ -86,11 +94,11 @@ export default function RentalsManagementPage() {
     } else {
       setEditingNotes(null);
       setAdminNotes('');
-      fetchRentals();
+      await fetchRentals();
     }
   }
 
-  function getStatusColor(status: string) {
+  function getStatusColor(status: Rental['status']) {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -107,7 +115,7 @@ export default function RentalsManagementPage() {
     }
   }
 
-  function getTypeIcon(type: string) {
+  function getTypeIcon(type: Rental['vehicles']['type']) {
     switch (type) {
       case 'motorcycle':
         return '🏍️';
@@ -139,17 +147,17 @@ export default function RentalsManagementPage() {
       <div className="card mb-6">
         <label className="block text-sm font-medium text-rock-600 mb-2">Filter by Status</label>
         <div className="flex flex-wrap gap-2">
-          {['all', 'pending', 'confirmed', 'active', 'completed', 'cancelled'].map((status) => (
+          {statusOptions.map((statusOption) => (
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
+              key={statusOption}
+              onClick={() => setStatusFilter(statusOption)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
-                statusFilter === status
+                statusFilter === statusOption
                   ? 'bg-orange-500 text-white'
                   : 'bg-gray-200 text-rock-600 hover:bg-gray-300'
               }`}
             >
-              {status}
+              {statusOption}
             </button>
           ))}
         </div>

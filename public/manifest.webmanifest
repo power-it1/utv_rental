@@ -1,0 +1,19 @@
+{
+  "name": "Adventure Rentals",
+  "short_name": "Adventure",
+  "description": "Motorcycle, UTV, and guided tour rentals with coastal flair.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4FEFF",
+  "theme_color": "#0E7C86",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

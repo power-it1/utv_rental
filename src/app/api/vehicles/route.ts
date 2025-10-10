@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 
 // GET /api/vehicles - Fetch all vehicles with optional filtering
 export async function GET(request: NextRequest) {
@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type');
     const available = searchParams.get('available');
     
-    let query = supabase.from('vehicles').select('*');
+  const supabase = await createClient();
+
+  let query = supabase.from('vehicles').select('*');
     
     // Filter by type if specified
     if (type && type !== 'all') {
@@ -72,7 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { data, error } = await supabase
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
       .from('vehicles')
       .insert([
         {
@@ -84,7 +88,7 @@ export async function POST(request: NextRequest) {
           specifications: specifications || {},
           available: true
         }
-      ])
+      ] as never)
       .select()
       .single();
     

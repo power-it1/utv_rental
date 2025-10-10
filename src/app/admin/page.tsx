@@ -1,17 +1,45 @@
 import { createClient } from '@/lib/supabase';
 import Link from 'next/link';
 
-async function getDashboardStats() {
+type RentalStatus = 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled';
+
+interface RecentRental {
+  id: string;
+  status: RentalStatus;
+  total_price: number | null;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+    phone: string | null;
+  } | null;
+  vehicles: {
+    name: string | null;
+    type: string | null;
+  } | null;
+}
+
+interface DashboardStats {
+  totalVehicles: number;
+  availableVehicles: number;
+  totalRentals: number;
+  activeRentals: number;
+  pendingRentals: number;
+  totalCustomers: number;
+  recentRentals: RecentRental[];
+  totalRevenue: number;
+}
+
+async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = await createClient();
 
   // Get counts
   const [
-    { count: totalVehicles },
-    { count: availableVehicles },
-    { count: totalRentals },
-    { count: activeRentals },
-    { count: pendingRentals },
-    { count: totalCustomers },
+    totalVehiclesResponse,
+    availableVehiclesResponse,
+    totalRentalsResponse,
+    activeRentalsResponse,
+    pendingRentalsResponse,
+    totalCustomersResponse,
   ] = await Promise.all([
     supabase.from('vehicles').select('*', { count: 'exact', head: true }),
     supabase.from('vehicles').select('*', { count: 'exact', head: true }).eq('available', true),
@@ -22,10 +50,13 @@ async function getDashboardStats() {
   ]);
 
   // Get recent rentals
-  const { data: recentRentals } = await supabase
+  const { data: recentRentalsRaw } = await supabase
     .from('rentals')
     .select(`
-      *,
+      id,
+      status,
+      total_price,
+      created_at,
       profiles:user_id(full_name, phone),
       vehicles:vehicle_id(name, type)
     `)
@@ -41,17 +72,80 @@ async function getDashboardStats() {
     .select('total_price, created_at')
     .gte('created_at', thirtyDaysAgo.toISOString())
     .in('status', ['confirmed', 'active', 'completed']);
+  const totalRevenue = (revenueData ?? []).reduce((sum, rental) => {
+    const price = typeof rental.total_price === 'number' ? rental.total_price : Number(rental.total_price ?? 0)
+    return sum + price
+  }, 0);
 
-  const totalRevenue = revenueData?.reduce((sum, rental) => sum + Number(rental.total_price), 0) || 0;
+  const parseStatus = (status: unknown): RentalStatus => {
+    switch (status) {
+      case 'pending':
+      case 'confirmed':
+      case 'active':
+      case 'completed':
+      case 'cancelled':
+        return status
+      default:
+        return 'pending'
+    }
+  };
+
+  const coerceProfile = (profile: unknown): RecentRental['profiles'] => {
+    if (profile && typeof profile === 'object') {
+      const record = profile as Record<string, unknown>;
+      return {
+        full_name: typeof record.full_name === 'string' ? record.full_name : null,
+        phone: typeof record.phone === 'string' ? record.phone : null,
+      };
+    }
+    return null;
+  };
+
+  const coerceVehicle = (vehicle: unknown): RecentRental['vehicles'] => {
+    if (vehicle && typeof vehicle === 'object') {
+      const record = vehicle as Record<string, unknown>;
+      return {
+        name: typeof record.name === 'string' ? record.name : null,
+        type: typeof record.type === 'string' ? record.type : null,
+      };
+    }
+    return null;
+  };
+
+  const toRecentRental = (rental: unknown): RecentRental | null => {
+    if (!rental || typeof rental !== 'object') return null;
+    const record = rental as Record<string, unknown>;
+    if (typeof record.id !== 'string' || typeof record.created_at !== 'string') {
+      return null;
+    }
+
+    return {
+      id: record.id,
+      status: parseStatus(record.status),
+      total_price:
+        typeof record.total_price === 'number'
+          ? record.total_price
+          : Number(record.total_price ?? 0),
+      created_at: record.created_at,
+      profiles: coerceProfile(record.profiles ?? null),
+      vehicles: coerceVehicle(record.vehicles ?? null),
+    };
+  };
+
+  const recentRentals: RecentRental[] = Array.isArray(recentRentalsRaw)
+    ? recentRentalsRaw
+        .map(toRecentRental)
+        .filter((rental): rental is RecentRental => rental !== null)
+    : [];
 
   return {
-    totalVehicles: totalVehicles || 0,
-    availableVehicles: availableVehicles || 0,
-    totalRentals: totalRentals || 0,
-    activeRentals: activeRentals || 0,
-    pendingRentals: pendingRentals || 0,
-    totalCustomers: totalCustomers || 0,
-    recentRentals: recentRentals || [],
+    totalVehicles: totalVehiclesResponse.count ?? 0,
+    availableVehicles: availableVehiclesResponse.count ?? 0,
+    totalRentals: totalRentalsResponse.count ?? 0,
+    activeRentals: activeRentalsResponse.count ?? 0,
+    pendingRentals: pendingRentalsResponse.count ?? 0,
+    totalCustomers: totalCustomersResponse.count ?? 0,
+    recentRentals,
     totalRevenue,
   };
 }
@@ -151,7 +245,7 @@ export default async function AdminDashboard() {
             {stats.recentRentals.length === 0 ? (
               <p className="text-rock-600 text-sm">No rentals yet</p>
             ) : (
-              stats.recentRentals.map((rental: any) => (
+              stats.recentRentals.map((rental) => (
                 <div key={rental.id} className="flex items-center justify-between border-b border-gray-200 pb-3 last:border-0">
                   <div className="flex-1">
                     <p className="font-medium text-pine-700">

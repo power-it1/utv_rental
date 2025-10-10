@@ -8,22 +8,60 @@ interface Coordinates {
 }
 
 interface TrackingMeta {
-  status?: string | null
-  last_ping_at?: string | null
-  last_known_location?: Coordinates | null
+  status: string | null
+  last_ping_at: string | null
+  last_known_location: Coordinates | null
   history?: Array<{ timestamp: string; location: Coordinates }>
 }
 
-function parseTracking(specifications: Record<string, any> | null): TrackingMeta | null {
-  if (!specifications || typeof specifications !== 'object') return null
-  const data = specifications.gps_tracking
-  if (!data || typeof data !== 'object') return null
-  return {
-    status: data.status ?? null,
-    last_ping_at: data.last_ping_at ?? null,
-    last_known_location: data.last_known_location ?? null,
-    history: Array.isArray(data.history) ? data.history : undefined,
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+function parseCoordinates(value: unknown): Coordinates | null {
+  if (!isRecord(value)) return null
+  const lat = Number(value.lat)
+  const lng = Number(value.lng)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  const label = typeof value.label === 'string' ? value.label : null
+  return { lat, lng, label: label ?? undefined }
+}
+
+function parseTracking(specifications: Record<string, unknown> | null): TrackingMeta | null {
+  if (!isRecord(specifications)) return null
+  const trackingRaw = specifications['gps_tracking']
+  if (!isRecord(trackingRaw)) return null
+
+  const status = typeof trackingRaw.status === 'string' ? trackingRaw.status : null
+  const lastPingAt = typeof trackingRaw.last_ping_at === 'string' ? trackingRaw.last_ping_at : null
+  const lastKnownLocation = parseCoordinates(trackingRaw.last_known_location)
+
+  let history: Array<{ timestamp: string; location: Coordinates }> | undefined
+  if (Array.isArray(trackingRaw.history)) {
+    history = trackingRaw.history
+      .map((entry) => {
+        if (!isRecord(entry)) return null
+        const timestamp = typeof entry.timestamp === 'string' ? entry.timestamp : null
+        const location = parseCoordinates(entry.location)
+        if (!timestamp || !location) return null
+        return { timestamp, location }
+      })
+      .filter((entry): entry is { timestamp: string; location: Coordinates } => Boolean(entry))
   }
+
+  return {
+    status,
+    last_ping_at: lastPingAt,
+    last_known_location: lastKnownLocation,
+    history,
+  }
+}
+
+interface VehicleRow {
+  id: string
+  name: string
+  type: string
+  specifications: Record<string, unknown> | null
+  images: string[] | null
 }
 
 function formatRelativeTime(value?: string | null) {
@@ -78,9 +116,10 @@ export default async function AdminGpsPage() {
     )
   }
 
-  const enriched = (vehicles ?? []).map((vehicle) => ({
+  const rawVehicles: VehicleRow[] = Array.isArray(vehicles) ? (vehicles as VehicleRow[]) : []
+  const enriched = rawVehicles.map((vehicle) => ({
     ...vehicle,
-    tracking: parseTracking(vehicle.specifications as Record<string, any> | null),
+    tracking: parseTracking(vehicle.specifications),
   }))
 
   const active = enriched.filter((vehicle) => vehicle.tracking && vehicle.tracking.last_known_location)

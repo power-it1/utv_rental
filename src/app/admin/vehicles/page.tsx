@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -25,19 +25,24 @@ interface TrackingMetadata {
   history?: Array<{ timestamp: string; location: Coordinates }>;
 }
 
+type VehicleType = 'motorcycle' | 'utv' | 'guided_tour';
+
 interface Vehicle {
   id: string;
-  type: 'motorcycle' | 'utv' | 'guided_tour';
+  type: VehicleType;
   name: string;
   description: string | null;
   price_per_day: number;
   images: string[];
   available: boolean;
-  specifications: Record<string, any>;
+  specifications: Record<string, unknown>;
   created_at: string;
 }
 
-const SAMPLE_LOCATIONS: Record<Vehicle['type'] | 'default', Coordinates[]> = {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const SAMPLE_LOCATIONS: Record<VehicleType | 'default', Coordinates[]> = {
   motorcycle: [
     { lat: 20.5217, lng: -86.9557, label: 'Coastal Highway Lookout' },
     { lat: 21.1243, lng: -86.8617, label: 'Laguna Shores Scenic Loop' },
@@ -55,7 +60,7 @@ const SAMPLE_LOCATIONS: Record<Vehicle['type'] | 'default', Coordinates[]> = {
   ],
 };
 
-function jitteredLocation(type: Vehicle['type']): Coordinates {
+function jitteredLocation(type: VehicleType): Coordinates {
   const pool = SAMPLE_LOCATIONS[type] ?? SAMPLE_LOCATIONS.default;
   const base = pool[Math.floor(Math.random() * pool.length)] ?? SAMPLE_LOCATIONS.default[0];
   const latOffset = (Math.random() - 0.5) * 0.01;
@@ -67,15 +72,38 @@ function jitteredLocation(type: Vehicle['type']): Coordinates {
   };
 }
 
-function extractTracking(specs: Record<string, any> | null | undefined): TrackingMetadata | null {
-  if (!specs || typeof specs !== 'object') return null;
+const parseCoordinates = (value: unknown): Coordinates | null => {
+  if (!isRecord(value)) return null;
+  const lat = Number(value.lat);
+  const lng = Number(value.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const label = typeof value.label === 'string' ? value.label : undefined;
+  return { lat, lng, label };
+};
+
+function extractTracking(specs: Record<string, unknown> | null | undefined): TrackingMetadata | null {
+  if (!isRecord(specs)) return null;
   const raw = specs.gps_tracking;
-  if (!raw || typeof raw !== 'object') return null;
+  if (!isRecord(raw)) return null;
+
+  const lastKnown = parseCoordinates(raw.last_known_location);
+  const history = Array.isArray(raw.history)
+    ? raw.history
+        .map((entry) => {
+          if (!isRecord(entry)) return null;
+          const timestamp = typeof entry.timestamp === 'string' ? entry.timestamp : null;
+          const location = parseCoordinates(entry.location);
+          if (!timestamp || !location) return null;
+          return { timestamp, location };
+        })
+        .filter((entry): entry is { timestamp: string; location: Coordinates } => Boolean(entry))
+    : undefined;
+
   return {
-    status: raw.status,
-    last_ping_at: raw.last_ping_at,
-    last_known_location: raw.last_known_location,
-    history: Array.isArray(raw.history) ? raw.history : undefined,
+    status: typeof raw.status === 'string' ? raw.status : undefined,
+    last_ping_at: typeof raw.last_ping_at === 'string' ? raw.last_ping_at : undefined,
+    last_known_location: lastKnown ?? undefined,
+    history,
   };
 }
 
@@ -99,6 +127,37 @@ function formatRelativeTime(isoDate?: string) {
   return rtf.format(days, 'day');
 }
 
+const toVehicle = (item: unknown): Vehicle | null => {
+  if (!isRecord(item)) return null;
+  const id = typeof item.id === 'string' ? item.id : null;
+  const name = typeof item.name === 'string' ? item.name : null;
+  const typeValue = item.type;
+  const type: VehicleType =
+    typeValue === 'motorcycle' || typeValue === 'utv' || typeValue === 'guided_tour'
+      ? typeValue
+      : 'motorcycle';
+  if (!id || !name) return null;
+
+  const price = Number(item.price_per_day ?? 0);
+  const images = Array.isArray(item.images)
+    ? item.images.filter((img): img is string => typeof img === 'string')
+    : [];
+
+  const specifications = isRecord(item.specifications) ? item.specifications : {};
+
+  return {
+    id,
+    type,
+    name,
+    description: typeof item.description === 'string' ? item.description : null,
+    price_per_day: Number.isFinite(price) ? price : 0,
+    images,
+    available: typeof item.available === 'boolean' ? item.available : Boolean(item.available),
+    specifications,
+    created_at: typeof item.created_at === 'string' ? item.created_at : new Date().toISOString(),
+  };
+};
+
 export default function VehiclesPage() {
   const { showToast } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -107,11 +166,7 @@ export default function VehiclesPage() {
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all');
   const [trackingVehicleId, setTrackingVehicleId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchVehicles();
-  }, [filter, availabilityFilter]);
-
-  async function fetchVehicles() {
+  const fetchVehicles = useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from('vehicles')
@@ -133,30 +188,29 @@ export default function VehiclesPage() {
     if (error) {
       console.error('Error fetching vehicles:', error);
     } else {
-      const normalized = (data || []).map((item) => ({
-        ...item,
-        images: Array.isArray(item.images) ? item.images : [],
-        specifications:
-          item.specifications && typeof item.specifications === 'object'
-            ? item.specifications
-            : {},
-      }));
-      setVehicles(normalized as Vehicle[]);
+      const normalized = (data ?? [])
+        .map(toVehicle)
+        .filter((vehicle): vehicle is Vehicle => vehicle !== null);
+      setVehicles(normalized);
     }
     setLoading(false);
-  }
+  }, [availabilityFilter, filter]);
+
+  useEffect(() => {
+    void fetchVehicles();
+  }, [fetchVehicles]);
 
   async function toggleAvailability(id: string, currentStatus: boolean) {
     const { error } = await supabase
       .from('vehicles')
-      .update({ available: !currentStatus })
+      .update({ available: !currentStatus } as never)
       .eq('id', id);
 
     if (error) {
       console.error('Error updating vehicle:', error);
       alert('Failed to update vehicle availability');
     } else {
-      fetchVehicles();
+      await fetchVehicles();
     }
   }
 
@@ -164,9 +218,17 @@ export default function VehiclesPage() {
     setTrackingVehicleId(vehicle.id);
     const location = jitteredLocation(vehicle.type);
     const requestedAt = new Date().toISOString();
-    const baseSpecs = (vehicle.specifications && typeof vehicle.specifications === 'object') ? vehicle.specifications : {};
-    const gpsMeta = baseSpecs.gps_tracking && typeof baseSpecs.gps_tracking === 'object' ? baseSpecs.gps_tracking : {};
-    const history = Array.isArray(gpsMeta.history) ? gpsMeta.history.slice(-4) : [];
+    const baseSpecs = isRecord(vehicle.specifications) ? { ...vehicle.specifications } : {};
+    const gpsMeta = isRecord(baseSpecs.gps_tracking) ? baseSpecs.gps_tracking : {};
+    const history = Array.isArray(gpsMeta.history)
+      ? gpsMeta.history.slice(-4).filter((entry): entry is { timestamp: string; location: Coordinates } => {
+          return (
+            isRecord(entry) &&
+            typeof entry.timestamp === 'string' &&
+            parseCoordinates(entry.location) !== null
+          );
+        })
+      : [];
 
     const updatedSpecs = {
       ...baseSpecs,
@@ -180,7 +242,7 @@ export default function VehiclesPage() {
 
     const { error } = await supabase
       .from('vehicles')
-      .update({ specifications: updatedSpecs })
+      .update({ specifications: updatedSpecs } as never)
       .eq('id', vehicle.id);
 
     if (error) {
@@ -214,15 +276,15 @@ export default function VehiclesPage() {
       console.error('Error deleting vehicle:', error);
       alert('Failed to delete vehicle. It may have active rentals.');
     } else {
-      fetchVehicles();
+      await fetchVehicles();
     }
   }
 
-  function getTypeIcon(type: string) {
+  function getTypeIcon(type: VehicleType) {
     return getVehicleIcon(type);
   }
 
-  function getTypeLabel(type: string) {
+  function getTypeLabel(type: VehicleType) {
     switch (type) {
       case 'motorcycle':
         return 'Motorcycle';

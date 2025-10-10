@@ -48,7 +48,7 @@ export default function SignUpPage() {
               Account Created Successfully!
             </h2>
             <p className="text-rock-600 mb-6">
-              Please check your email to verify your account. YouYou'll be redirectedapos;ll be redirected to sign in shortly.
+              Please check your email to verify your account. You&apos;ll be redirected to sign in shortly.
             </p>
             <Link href="/auth/signin" className="btn-primary">
               Continue to Sign In

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import AdminSidebar from '@/components/admin/AdminSidebar';
 
 // Force dynamic rendering for admin routes
 export const dynamic = 'force-dynamic';
@@ -34,101 +35,61 @@ async function getAdminData() {
   return { user, profile };
 }
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { profile } = await getAdminData();
 
+  const navItems = [
+    { href: '/admin', label: 'Executive Overview', icon: '📊' },
+    { href: '/admin/vehicles', label: 'Fleet Intelligence', icon: '🏍️' },
+    { href: '/admin/rentals', label: 'Rental Pipeline', icon: '📋' },
+    { href: '/admin/gps', label: 'GPS Command', icon: '📍' },
+    { href: '/admin/customers', label: 'Client Network', icon: '👥' },
+    { href: '/admin/logs', label: 'Audit Logs', icon: '📝' },
+  ];
+
   return (
-    <div className="min-h-screen bg-sky-50">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-pine-700 text-white min-h-screen fixed">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
-            <p className="text-pine-200 text-sm">Welcome, {profile?.full_name || 'Admin'}</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-sand-50">
+      <div className="flex min-h-screen">
+        <AdminSidebar
+          items={navItems}
+          profileName={profile?.full_name ?? 'Admin'}
+          cta={{ href: '/admin/vehicles/new', label: 'Launch a New Experience' }}
+        />
 
-          <nav className="mt-6">
-            <Link
-              href="/admin"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📊</span>
-                <span>Dashboard</span>
+        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-10 xl:px-14">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="mb-6 flex flex-col gap-4 rounded-3xl bg-white/70 p-6 shadow-lg shadow-sky-100/60 ring-1 ring-white/60 backdrop-blur">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-orange-500">Performance Pulse</p>
+                <h2 className="mt-2 text-3xl font-bold text-pine-800">{profile?.full_name || 'Leadership'} Dashboard</h2>
               </div>
-            </Link>
-
-            <Link
-              href="/admin/vehicles"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">🏍️</span>
-                <span>Vehicles</span>
+              <div className="flex flex-wrap items-center gap-3 text-sm text-rock-500">
+                <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-3 py-1 font-medium text-pine-700">
+                  📈 Daily occupancy auto-synced
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-3 py-1 font-medium text-orange-600">
+                  ⚡ Lightning-fast approvals
+                </span>
               </div>
-            </Link>
-
-            <Link
-              href="/admin/rentals"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📋</span>
-                <span>Rentals</span>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/gps"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📍</span>
-                <span>GPS Tracking</span>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/customers"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">👥</span>
-                <span>Customers</span>
-              </div>
-            </Link>
-
-            <Link
-              href="/admin/logs"
-              className="block px-6 py-3 hover:bg-pine-600 transition-colors border-l-4 border-transparent hover:border-orange-500"
-            >
-              <div className="flex items-center">
-                <span className="text-xl mr-3">📝</span>
-                <span>Activity Logs</span>
-              </div>
-            </Link>
-
-            <div className="border-t border-pine-600 mt-6 pt-6">
-              <Link
-                href="/"
-                className="block px-6 py-3 hover:bg-pine-600 transition-colors"
-              >
-                <div className="flex items-center">
-                  <span className="text-xl mr-3">🏠</span>
-                  <span>Back to Site</span>
-                </div>
-              </Link>
             </div>
-          </nav>
-        </aside>
 
-        {/* Main Content */}
-        <main className="ml-64 flex-1 p-8">
-          {children}
+            <div className="lg:hidden mb-6">
+              <div className="grid grid-cols-2 gap-3">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="rounded-2xl bg-white/80 px-4 py-3 text-sm font-semibold text-pine-700 shadow-sm shadow-sky-100 hover:bg-sky-50"
+                  >
+                    <span className="mr-2">{item.icon}</span>
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-8 pb-12">{children}</div>
+          </div>
         </main>
       </div>
     </div>

@@ -1,11 +1,11 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createServerClient as createSupabaseServerClient, type CookieOptions } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // Client-side Supabase client
-export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey, {
+export const supabase: SupabaseClient<Database> = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -37,7 +37,7 @@ export async function createClient() {
   const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
 
-  return createSupabaseServerClient(
+  return createSupabaseServerClient<Database>(
     supabaseUrl,
     supabaseAnonKey,
     {
@@ -48,7 +48,7 @@ export async function createClient() {
         set(name: string, value: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) {
+          } catch {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
@@ -57,7 +57,7 @@ export async function createClient() {
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
+          } catch {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
             // user sessions.
@@ -80,6 +80,7 @@ export interface Database {
           avatar_url: string | null
           website: string | null
           phone: string | null
+          role: string | null
           created_at: string
           updated_at: string
         }
@@ -90,6 +91,7 @@ export interface Database {
           avatar_url?: string | null
           website?: string | null
           phone?: string | null
+          role?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -100,6 +102,7 @@ export interface Database {
           avatar_url?: string | null
           website?: string | null
           phone?: string | null
+          role?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -113,7 +116,7 @@ export interface Database {
           price_per_day: number
           images: string[] | null
           available: boolean
-          specifications: Record<string, any> | null
+          specifications: Record<string, unknown> | null
           created_at: string
           updated_at: string
         }
@@ -125,7 +128,7 @@ export interface Database {
           price_per_day: number
           images?: string[] | null
           available?: boolean
-          specifications?: Record<string, any> | null
+          specifications?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
         }
@@ -137,7 +140,7 @@ export interface Database {
           price_per_day?: number
           images?: string[] | null
           available?: boolean
-          specifications?: Record<string, any> | null
+          specifications?: Record<string, unknown> | null
           created_at?: string
           updated_at?: string
         }

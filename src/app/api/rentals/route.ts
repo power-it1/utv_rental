@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
 // GET /api/rentals - Fetch rentals for authenticated user
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const {
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
           status: 'pending',
           notes: notes || null
         }
-      ])
+      ] as never)
       .select(`
         *,
         vehicle:vehicles(id, name, type, price_per_day)

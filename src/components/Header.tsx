@@ -1,26 +1,58 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { authHelpers } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 export default function Header() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    checkUser();
+  const checkAdminRole = useCallback(async (userId: string) => {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
 
-    // Listen for auth changes
-    const { data: authListener } = authHelpers.onAuthStateChange((event, session) => {
+    if (error) {
+      console.error('Failed to check admin role:', error);
+      setIsAdmin(false);
+      return;
+    }
+
+    const role =
+      profile && typeof profile === 'object' && 'role' in profile && typeof (profile as { role: unknown }).role === 'string'
+        ? (profile as { role: string }).role
+        : null;
+
+    setIsAdmin(role === 'admin');
+  }, []);
+
+  const checkUser = useCallback(async () => {
+    const { user } = await authHelpers.getCurrentUser();
+    setUser(user ?? null);
+    if (user) {
+      await checkAdminRole(user.id);
+    } else {
+      setIsAdmin(false);
+    }
+    setLoading(false);
+  }, [checkAdminRole]);
+
+  useEffect(() => {
+    void checkUser();
+
+    const { data: authListener } = authHelpers.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        checkAdminRole(session.user.id);
+        await checkAdminRole(session.user.id);
       } else {
         setUser(null);
         setIsAdmin(false);
@@ -31,26 +63,7 @@ export default function Header() {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []);
-
-  const checkUser = async () => {
-    const { user } = await authHelpers.getCurrentUser();
-    setUser(user);
-    if (user) {
-      await checkAdminRole(user.id);
-    }
-    setLoading(false);
-  };
-
-  const checkAdminRole = async (userId: string) => {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single();
-    
-    setIsAdmin(profile?.role === 'admin');
-  };
+  }, [checkAdminRole, checkUser]);
 
   const handleSignOut = async () => {
     await authHelpers.signOut();

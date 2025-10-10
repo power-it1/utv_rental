@@ -71,7 +71,7 @@ export default function CustomersPage() {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ role: newRole })
+      .update({ role: newRole } as never)
       .eq('id', customerId);
 
     if (error) {

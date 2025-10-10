@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, type Database } from '@/lib/supabase';
 
 // GET /api/vehicles/[id] - Fetch a specific vehicle by ID
 export async function GET(
@@ -43,19 +43,21 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const updates = { ...body };
-    
-    // Remove ID from updates if present
-    delete updates.id;
-    delete updates.created_at;
-    
-    // Add updated_at timestamp
-    updates.updated_at = new Date().toISOString();
+    type VehicleUpdate = Database['public']['Tables']['vehicles']['Update'];
+
+    const body = (await request.json()) as Partial<VehicleUpdate>;
+    const sanitized = { ...body } as VehicleUpdate;
+    delete sanitized.id;
+    delete sanitized.created_at;
+
+    const updates: VehicleUpdate = {
+      ...sanitized,
+      updated_at: new Date().toISOString(),
+    };
     
     const { data, error } = await supabase
       .from('vehicles')
-      .update(updates)
+      .update(updates as never)
       .eq('id', params.id)
       .select()
       .single();

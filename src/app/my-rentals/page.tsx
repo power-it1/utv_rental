@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { authHelpers } from '@/lib/auth';
 import Link from 'next/link';
@@ -25,26 +25,9 @@ interface Rental {
 export default function MyRentalsPage() {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    checkAuthAndFetchRentals();
-  }, []);
-
-  const checkAuthAndFetchRentals = async () => {
-    const { user } = await authHelpers.getCurrentUser();
-    
-    if (!user) {
-      router.push('/auth/signin');
-      return;
-    }
-    
-    setUser(user);
-    await fetchRentals(user.id);
-  };
-
-  const fetchRentals = async (userId: string) => {
+  const fetchRentals = useCallback(async (userId: string) => {
     setLoading(true);
     
     const { data, error } = await supabase
@@ -59,22 +42,37 @@ export default function MyRentalsPage() {
     if (error) {
       console.error('Error fetching rentals:', error);
     } else {
-      setRentals(data || []);
+      setRentals((data ?? []) as Rental[]);
     }
     setLoading(false);
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const checkAuthAndFetchRentals = useCallback(async () => {
+    const { user } = await authHelpers.getCurrentUser();
+
+    if (!user) {
+      router.push('/auth/signin');
+      return;
+    }
+
+    await fetchRentals(user.id);
+  }, [fetchRentals, router]);
+
+  useEffect(() => {
+    void checkAuthAndFetchRentals();
+  }, [checkAuthAndFetchRentals]);
+
+  const getStatusColor = (status: Rental['status']) => {
     switch (status) {
       case 'confirmed': return 'bg-green-100 text-green-800';
       case 'active': return 'bg-orange-100 text-orange-800';
-      case 'completed': return 'bg-pine-700-100 text-pine-800';
+      case 'completed': return 'bg-pine-100 text-pine-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-sand-700-100 text-sand-800';
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: Rental['vehicle']['type']) => {
     switch (type) {
       case 'motorcycle': return '🏍️';
       case 'utv': return '🚛';
@@ -126,7 +124,7 @@ export default function MyRentalsPage() {
             <div className="text-6xl mb-4">📋</div>
             <h3 className="text-2xl font-semibold text-pine-700 mb-2">No rentals yet</h3>
             <p className="text-rock-600 mb-6">
-              You havenhaven't made anyapos;t made any rentals yet. Start exploring our available vehicles!
+          You haven&apos;t made any rentals yet. Start exploring our available vehicles!
             </p>
             <Link href="/listings" className="btn-primary">
               Browse Vehicles

@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ToastProvider } from "@/components/ToastProvider";
+import PwaRegister from "@/components/PwaRegister";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  manifest: '/manifest.webmanifest',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#0E7C86' },
+    { media: '(prefers-color-scheme: dark)', color: '#03141a' },
+  ],
 };
 
 export default function RootLayout({
@@ -52,6 +58,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastProvider>
+          <PwaRegister />
           <div className="min-h-screen flex flex-col">
             <Header />
             <main className="flex-1">
