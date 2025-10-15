@@ -120,15 +120,25 @@ export default function MyRentalsPage() {
 
         {/* Rentals List */}
         {rentals.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📋</div>
-            <h3 className="text-2xl font-semibold text-pine-700 mb-2">No rentals yet</h3>
-            <p className="text-rock-600 mb-6">
-          You haven&apos;t made any rentals yet. Start exploring our available vehicles!
+          <div className="card text-center py-16 max-w-2xl mx-auto">
+            <div className="text-8xl mb-6">🏝️</div>
+            <h3 className="text-3xl font-bold text-pine-700 mb-3">Ready for Your First Adventure?</h3>
+            <p className="text-lg text-rock-600 mb-8 max-w-md mx-auto">
+              You haven&apos;t booked any rentals yet. Explore our fleet of motorcycles, UTVs, and guided tours to start your next journey!
             </p>
-            <Link href="/listings" className="btn-primary">
-              Browse Vehicles
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/listings" className="btn-primary">
+                🏍️ Browse Vehicles
+              </Link>
+              <Link href="/listings?type=guided_tour" className="btn-secondary">
+                🗺️ View Guided Tours
+              </Link>
+            </div>
+            <div className="mt-8 pt-8 border-t border-sky-200">
+              <p className="text-sm text-rock-500">
+                💡 <strong>Tip:</strong> Book early to secure the best vehicles for your preferred dates
+              </p>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">

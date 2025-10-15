@@ -7,10 +7,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
     const available = searchParams.get('available');
-    
-  const supabase = await createClient();
+    const supabase = await createClient();
 
-  let query = supabase.from('vehicles').select('*');
+    let query = supabase.from('vehicles').select('*');
     
     // Filter by type if specified
     if (type && type !== 'all') {
@@ -18,13 +17,15 @@ export async function GET(request: NextRequest) {
     }
     
     // Filter by availability if specified
-    if (available !== null) {
-      query = query.eq('available', available === 'true');
+    if (available === 'true') {
+      query = query.eq('available', true);
+    } else if (available === 'false') {
+      query = query.eq('available', false);
     }
     
     // Order by created date
     query = query.order('created_at', { ascending: false });
-    
+
     const { data, error } = await query;
     
     if (error) {
@@ -74,9 +75,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-  const supabase = await createClient();
+    const supabase = await createClient();
 
-  const { data, error } = await supabase
+    const { data, error } = await supabase
       .from('vehicles')
       .insert([
         {

@@ -47,7 +47,15 @@ export default function Header() {
   }, [checkAdminRole]);
 
   useEffect(() => {
-    void checkUser();
+    let didTimeout = false;
+    const timeout = setTimeout(() => {
+      didTimeout = true;
+      setLoading(false);
+    }, 4000);
+
+    void checkUser().finally(() => {
+      if (!didTimeout) clearTimeout(timeout);
+    });
 
     const { data: authListener } = authHelpers.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
@@ -61,6 +69,7 @@ export default function Header() {
     });
 
     return () => {
+      clearTimeout(timeout);
       authListener?.subscription.unsubscribe();
     };
   }, [checkAdminRole, checkUser]);

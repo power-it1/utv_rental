@@ -11,7 +11,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
-      url: `${baseUrl}/rentals`,
+      url: `${baseUrl}/listings`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/listings?type=motorcycle`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/listings?type=utv`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/listings?type=guided_tour`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,
@@ -20,7 +38,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/auth/signup`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.5,
+      priority: 0.6,
     },
     {
       url: `${baseUrl}/auth/signin`,

@@ -158,6 +158,10 @@ const toVehicle = (item: unknown): Vehicle | null => {
   };
 };
 
+interface VehiclesPayload {
+  vehicles?: unknown[];
+}
+
 export default function VehiclesPage() {
   const { showToast } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -168,33 +172,45 @@ export default function VehiclesPage() {
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
-    let query = supabase
-      .from('vehicles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const searchParams = new URLSearchParams();
 
     if (filter !== 'all') {
-      query = query.eq('type', filter);
+      searchParams.set('type', filter);
     }
 
     if (availabilityFilter === 'available') {
-      query = query.eq('available', true);
+      searchParams.set('available', 'true');
     } else if (availabilityFilter === 'unavailable') {
-      query = query.eq('available', false);
+      searchParams.set('available', 'false');
     }
 
-    const { data, error } = await query;
+    const url = searchParams.size > 0 ? `/api/vehicles?${searchParams.toString()}` : '/api/vehicles';
 
-    if (error) {
-      console.error('Error fetching vehicles:', error);
-    } else {
-      const normalized = (data ?? [])
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const payload = (await response.json()) as VehiclesPayload;
+      const normalized = (payload.vehicles ?? [])
         .map(toVehicle)
         .filter((vehicle): vehicle is Vehicle => vehicle !== null);
+
       setVehicles(normalized);
+    } catch (error) {
+      console.error('Failed to load vehicles:', error);
+      showToast('We couldn’t load the fleet. Please refresh.', 'error');
+      setVehicles([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [availabilityFilter, filter]);
+  }, [availabilityFilter, filter, showToast]);
 
   useEffect(() => {
     void fetchVehicles();
@@ -298,15 +314,15 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-4xl font-bold text-pine-700 mb-2">Vehicles</h1>
+    <section className="site-container mx-auto px-4 py-10 space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-pine-700">Vehicles</h1>
           <p className="text-rock-600">Manage your rental fleet</p>
         </div>
         <Link
           href="/admin/vehicles/new"
-          className="btn-primary inline-flex items-center"
+          className="btn-primary inline-flex items-center justify-center self-start md:self-auto"
         >
           <span className="mr-2">➕</span>
           Add Vehicle
@@ -314,11 +330,11 @@ export default function VehiclesPage() {
       </div>
 
       {/* Filters */}
-      <div className="card mb-6">
-        <div className="flex flex-wrap gap-4">
+      <div className="card">
+        <div className="grid gap-6 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-rock-600 mb-2">Vehicle Type</label>
-            <div className="flex gap-2">
+            <label className="block text-sm font-medium text-rock-600 mb-3">Vehicle Type</label>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -363,8 +379,8 @@ export default function VehiclesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-rock-600 mb-2">Availability</label>
-            <div className="flex gap-2">
+            <label className="block text-sm font-medium text-rock-600 mb-3">Availability</label>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setAvailabilityFilter('all')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -421,7 +437,7 @@ export default function VehiclesPage() {
             const tracking = extractTracking(vehicle.specifications);
             return (
               <div key={vehicle.id} className="card hover:shadow-lg transition-shadow">
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                   {/* Vehicle Image */}
                   <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden relative flex-shrink-0">
                     {vehicle.images && vehicle.images.length > 0 ? (
@@ -532,6 +548,6 @@ export default function VehiclesPage() {
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 }

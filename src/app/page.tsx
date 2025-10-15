@@ -7,13 +7,13 @@ export default function Home() {
       <section className="relative bg-gradient-to-br from-pine-700 to-pine-800 text-white">
   <div className="site-container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 animate-fade-in">
               Adventure Awaits
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-gray-200">
               Rent motorcycles, UTVs, and join guided tours for unforgettable experiences
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
 
               <Link href="/listings" className="btn-primary">
                 Explore Rentals
@@ -21,6 +21,22 @@ export default function Home() {
               <Link href="/listings?type=guided_tour" className="btn-secondary">
                 Guided Tours
               </Link>
+            </div>
+            
+            {/* Social Proof Stats */}
+            <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto mt-12 pt-8 border-t border-white/20">
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">500+</div>
+                <div className="text-sm md:text-base text-gray-300">Happy Customers</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">4.9★</div>
+                <div className="text-sm md:text-base text-gray-300">Average Rating</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl md:text-4xl font-bold text-orange-500 mb-1">50+</div>
+                <div className="text-sm md:text-base text-gray-300">Premium Vehicles</div>
+              </div>
             </div>
           </div>
         </div>
@@ -33,8 +49,8 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-center text-pine-700 mb-12">
             Choose Your Adventure
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="card text-center">
+          <div className="grid md:grid-cols-3 gap-8 stagger-fade">
+            <div className="card text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <span className="text-2xl text-white">🏍️</span>
               </div>
@@ -47,7 +63,7 @@ export default function Home() {
               </Link>
             </div>
             
-            <div className="card text-center">
+            <div className="card text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <span className="text-2xl text-white">🚛</span>
               </div>
@@ -60,7 +76,7 @@ export default function Home() {
               </Link>
             </div>
             
-            <div className="card text-center">
+            <div className="card text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-16 h-16 bg-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <span className="text-2xl text-white">🗺️</span>
               </div>

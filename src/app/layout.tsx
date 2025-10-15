@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
@@ -40,11 +40,23 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: "/pwa-icon.svg",
+    shortcut: "/pwa-icon.svg",
+    apple: "/pwa-icon.svg",
+  },
   manifest: '/manifest.webmanifest',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#0E7C86' },
     { media: '(prefers-color-scheme: dark)', color: '#03141a' },
   ],
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0E7C86',
 };
 
 export default function RootLayout({

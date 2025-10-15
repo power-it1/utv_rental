@@ -160,7 +160,7 @@ function ListingsContent() {
             <button
               key={type}
               onClick={() => handleFilterChange(type)}
-              className={`px-6 py-3 rounded-full font-medium transition-colors shadow-sm ${
+              className={`px-6 py-3 rounded-full font-medium transition-colors shadow-sm w-full sm:w-auto ${
                 selectedType === type
                   ? 'bg-orange-500 text-white shadow-orange-200/60'
                   : 'bg-white/90 text-rock-600 hover:bg-sky-50'
@@ -191,9 +191,9 @@ function ListingsContent() {
             </Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 xl:grid-cols-3">
             {vehicles.map((vehicle) => (
-              <div key={vehicle.id} className="card hover:shadow-lg transition-shadow">
+              <div key={vehicle.id} className="card hover:shadow-lg transition-shadow h-full flex flex-col">
                 {/* Vehicle Image */}
                 <div className="w-full h-48 bg-gray-200 rounded-lg mb-4 overflow-hidden relative">
                   {vehicle.images && vehicle.images.length > 0 ? (
@@ -225,7 +225,7 @@ function ListingsContent() {
                 </div>
 
                 {/* Price and Action */}
-                <div className="flex items-center justify-between">
+                <div className="mt-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <span className="text-2xl font-bold text-orange-500">
                       {formatPrice(vehicle.price_per_day)}
@@ -234,7 +234,7 @@ function ListingsContent() {
                   </div>
                   <Link 
                     href={`/listings/${vehicle.id}`}
-                    className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors"
+                    className="bg-orange-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors text-center w-full sm:w-auto"
                   >
                     View Details
                   </Link>
